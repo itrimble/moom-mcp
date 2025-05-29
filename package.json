@@ -1,0 +1,38 @@
+{
+  "name": "moom-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for controlling Moom window layouts on macOS",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test.js",
+    "test-ui": "node test-ui.js",
+    "validate": "node validate.js",
+    "demo": "node demo.js"
+  },
+  "keywords": [
+    "mcp",
+    "moom",
+    "window-management",
+    "macos",
+    "model-context-protocol"
+  ],
+  "author": "Ian Trimble",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itrimble/moom-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itrimble/moom-mcp/issues"
+  },
+  "homepage": "https://github.com/itrimble/moom-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "applescript": "^1.0.0"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
