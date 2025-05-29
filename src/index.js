@@ -80,11 +80,49 @@ class MoomMCPServer {
           },
         },
         {
-          name: 'list_layouts',
-          description: 'List all available Moom layouts',
+          name: 'create_quad_layout',
+          description: 'Create a quad (2x2) window layout on a specific display',
           inputSchema: {
             type: 'object',
-            properties: {},
+            properties: {
+              layoutName: {
+                type: 'string',
+                description: 'Name for the quad layout',
+              },
+              display: {
+                type: 'string',
+                enum: ['main', 'left', 'right'],
+                description: 'Which display to use',
+              },
+              apps: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Array of 4 app names for TL, TR, BL, BR positions',
+              },
+            },
+            required: ['layoutName', 'apps'],
+          },
+        },
+        {
+          name: 'create_custom_grid_layout',
+          description: 'Create a custom grid layout (e.g., 3x2, 4x3) for high-res displays',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              layoutName: {
+                type: 'string',
+                description: 'Name for the grid layout',
+              },
+              columns: {
+                type: 'integer',
+                description: 'Number of columns in the grid',
+              },
+              rows: {
+                type: 'integer',
+                description: 'Number of rows in the grid',
+              },
+            },
+            required: ['layoutName', 'columns', 'rows'],
           },
         },
       ],
@@ -104,6 +142,10 @@ class MoomMCPServer {
           return await this.showMoomMenu();
         case 'list_layouts':
           return await this.listLayouts();
+        case 'create_quad_layout':
+          return await this.createQuadLayout(args.layoutName, args.display, args.apps);
+        case 'create_custom_grid_layout':
+          return await this.createCustomGridLayout(args.layoutName, args.columns, args.rows);
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -313,3 +355,110 @@ class MoomMCPServer {
 
 const server = new MoomMCPServer();
 server.start().catch(console.error);
+  async createQuadLayout(layoutName, display = 'main', apps) {
+    if (apps.length !== 4) {
+      return {
+        content: [{
+          type: 'text',
+          text: 'Error: Quad layout requires exactly 4 apps'
+        }]
+      };
+    }
+
+    const script = `
+      -- Rectangle shortcuts for quarters
+      on topLeft()
+        tell application "System Events"
+          key code 32 using {control down, command down} -- U
+        end tell
+      end topLeft
+      
+      on topRight()
+        tell application "System Events"
+          key code 34 using {control down, command down} -- I
+        end tell
+      end topRight
+      
+      on bottomLeft()
+        tell application "System Events"
+          key code 38 using {control down, command down} -- J
+        end tell
+      end bottomLeft
+      
+      on bottomRight()
+        tell application "System Events"
+          key code 40 using {control down, command down} -- K
+        end tell
+      end bottomRight
+      
+      -- Position apps in quarters
+      tell application "${apps[0]}" to activate
+      delay 0.5
+      topLeft()
+      delay 0.5
+      
+      tell application "${apps[1]}" to activate
+      delay 0.5
+      topRight()
+      delay 0.5
+      
+      tell application "${apps[2]}" to activate
+      delay 0.5
+      bottomLeft()
+      delay 0.5
+      
+      tell application "${apps[3]}" to activate
+      delay 0.5
+      bottomRight()
+      delay 0.5
+      
+      -- Save as Moom layout
+      tell application "Moom"
+        save layout and replace "${layoutName}"
+      end tell
+    `;
+
+    try {
+      await this.runAppleScript(script);
+      return {
+        content: [{
+          type: 'text',
+          text: `Successfully created quad layout: ${layoutName}`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error creating quad layout: ${error.message}`
+        }]
+      };
+    }
+  }
+
+  async createCustomGridLayout(layoutName, columns, rows) {
+    const script = `
+      tell application "Moom"
+        -- This would require Moom's grid API or custom positioning
+        -- For now, we'll create a notification
+        display notification "Grid layout ${columns}x${rows} would be created here" with title "${layoutName}"
+      end tell
+    `;
+
+    try {
+      await this.runAppleScript(script);
+      return {
+        content: [{
+          type: 'text',
+          text: `Grid layout feature coming soon. For now, use Moom's built-in grid with ${columns}x${rows} dimensions.`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error: ${error.message}`
+        }]
+      };
+    }
+  }
