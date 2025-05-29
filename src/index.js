@@ -346,15 +346,6 @@ class MoomMCPServer {
     }
   }
 
-  async start() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('Moom MCP server started');
-  }
-}
-
-const server = new MoomMCPServer();
-server.start().catch(console.error);
   async createQuadLayout(layoutName, display = 'main', apps) {
     if (apps.length !== 4) {
       return {
@@ -462,3 +453,13 @@ server.start().catch(console.error);
       };
     }
   }
+
+  async start() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('Moom MCP server started');
+  }
+}
+
+const server = new MoomMCPServer();
+server.start().catch(console.error);
