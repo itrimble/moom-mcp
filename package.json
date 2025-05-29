@@ -1,6 +1,6 @@
 {
   "name": "moom-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for controlling Moom window layouts on macOS",
   "main": "src/index.js",
   "scripts": {
