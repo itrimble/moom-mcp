@@ -167,25 +167,27 @@ class MoomMCPServer {
     }  }
 
   async saveCurrentLayout(layoutName) {
-    // Use keyboard shortcut Cmd+Option+S to save snapshot
+    // Use the menu to save layout
     const script = `
       tell application "System Events"
         tell process "Moom"
           try
-            -- Bring Moom to front
-            set frontmost to true
+            -- Click the Moom menu bar icon
+            click menu bar item 1 of menu bar 2
+            delay 0.3
             
-            -- Use save snapshot keyboard shortcut
-            keystroke "s" using {command down, option down}
+            -- Click "Save Layout..." menu item
+            click menu item "Save Layout…" of menu 1 of menu bar item 1 of menu bar 2
             delay 0.5
             
-            -- Clear any existing text and type the layout name
-            keystroke "a" using {command down}
+            -- Type the layout name
             keystroke "${layoutName}"
-            delay 0.2
+            delay 0.3
             
             -- Press Enter to save
             key code 36
+            delay 0.5
+            
             return "Successfully saved layout: ${layoutName}"
           on error errMsg
             return "Error saving layout: " & errMsg
