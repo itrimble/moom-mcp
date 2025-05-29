@@ -31,7 +31,7 @@ class MoomMCPServer {
       tools: [
         {
           name: 'activate_layout',
-          description: 'Activate a specific Moom layout by clicking it in the menu bar',
+          description: 'Activate a specific Moom layout by name',
           inputSchema: {
             type: 'object',
             properties: {
@@ -41,7 +41,8 @@ class MoomMCPServer {
               },
             },
             required: ['layoutName'],
-          },        },
+          },
+        },
         {
           name: 'save_current_layout',
           description: 'Save the current window arrangement as a new Moom layout',
@@ -54,8 +55,7 @@ class MoomMCPServer {
               },
             },
             required: ['layoutName'],
-          },
-        },
+          },        },
         {
           name: 'trigger_moom_action',
           description: 'Trigger common Moom actions via keyboard shortcuts',
@@ -79,8 +79,17 @@ class MoomMCPServer {
             properties: {},
           },
         },
+        {
+          name: 'list_layouts',
+          description: 'List all available Moom layouts',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
       ],
     }));
+
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -93,12 +102,13 @@ class MoomMCPServer {
           return await this.triggerMoomAction(args.action);
         case 'show_moom_menu':
           return await this.showMoomMenu();
+        case 'list_layouts':
+          return await this.listLayouts();
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
     });
   }
-
   async runAppleScript(script) {
     try {
       const { stdout, stderr } = await execAsync(`osascript -e '${script}'`);
@@ -111,47 +121,25 @@ class MoomMCPServer {
     }
   }
 
-  async activateLayout(layoutName) {
-    // First, bring Moom to focus
-    const focusScript = `
-      tell application "System Events"
-        set frontmost of process "Moom" to true
-      end tell
-    `;    
-    await this.runAppleScript(focusScript);
-    
-    // Click on the Moom menu bar icon and select layout
+  async listLayouts() {
     const script = `
-      tell application "System Events"
-        tell process "Moom"
-          try
-            -- Click on the Moom menu bar icon
-            click menu bar item 1 of menu bar 2
-            delay 0.3
-            
-            -- Try to click the layout button
-            try
-              click button "${layoutName}" of window 1
-              return "Successfully activated layout: ${layoutName}"
-            on error
-              -- If button not found, press ESC and return error
-              key code 53
-              return "Error: Layout '${layoutName}' not found in Moom menu"
-            end try
-          on error errMsg
-            return "Error accessing Moom menu: " & errMsg
-          end try
-        end tell
+      tell application "Moom"
+        list of layouts
       end tell
     `;
     
     try {
       const result = await this.runAppleScript(script);
+      const layouts = result.split(', ').map(name => name.trim());
+      
       return {
         content: [
           {
             type: 'text',
-            text: result,
+            text: JSON.stringify({
+              layouts: layouts,
+              count: layouts.length
+            }, null, 2),
           },
         ],
       };
@@ -160,49 +148,27 @@ class MoomMCPServer {
         content: [
           {
             type: 'text',
-            text: `Error: ${error.message}\n\nMake sure Terminal/Claude has accessibility permissions.`,
+            text: `Error listing layouts: ${error.message}`,
           },
         ],
       };
-    }  }
+    }
+  }
 
-  async saveCurrentLayout(layoutName) {
-    // Use the menu to save layout
+  async activateLayout(layoutName) {
+    // Use AppleScript to apply layout
     const script = `
-      tell application "System Events"
-        tell process "Moom"
-          try
-            -- Click the Moom menu bar icon
-            click menu bar item 1 of menu bar 2
-            delay 0.3
-            
-            -- Click "Save Layout..." menu item
-            click menu item "Save Layout…" of menu 1 of menu bar item 1 of menu bar 2
-            delay 0.5
-            
-            -- Type the layout name
-            keystroke "${layoutName}"
-            delay 0.3
-            
-            -- Press Enter to save
-            key code 36
-            delay 0.5
-            
-            return "Successfully saved layout: ${layoutName}"
-          on error errMsg
-            return "Error saving layout: " & errMsg
-          end try
-        end tell
+      tell application "Moom"
+        apply layout "${layoutName}"
       end tell
-    `;
-    
+    `;    
     try {
-      const result = await this.runAppleScript(script);
+      await this.runAppleScript(script);
       return {
         content: [
           {
             type: 'text',
-            text: result,
+            text: `Successfully activated layout: ${layoutName}`,
           },
         ],
       };
@@ -215,8 +181,38 @@ class MoomMCPServer {
           },
         ],
       };
-    }  }
+    }
+  }
 
+  async saveCurrentLayout(layoutName) {
+    // Use AppleScript to save layout
+    const script = `
+      tell application "Moom"
+        save layout and replace "${layoutName}"
+      end tell
+    `;
+    
+    try {
+      await this.runAppleScript(script);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Successfully saved layout: ${layoutName}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error saving layout: ${error.message}`,
+          },
+        ],
+      };
+    }
+  }
   async triggerMoomAction(action) {
     // Map actions to Moom keyboard shortcuts
     const shortcuts = {
@@ -262,10 +258,10 @@ class MoomMCPServer {
       };
     } catch (error) {
       return {
-        content: [          {
+        content: [
+          {
             type: 'text',
-            text: `Error: ${error.message}`,
-          },
+            text: `Error: ${error.message}`,          },
         ],
       };
     }
