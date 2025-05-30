@@ -125,6 +125,80 @@ class MoomMCPServer {
             required: ['layoutName', 'columns', 'rows'],
           },
         },
+        {
+          name: 'list_layouts',
+          description: 'List all saved Moom layouts',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'launch_application',
+          description: 'Launch a specified application for workflow setup',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              appName: {
+                type: 'string',
+                description: 'Name of the application to launch',
+              },
+            },
+            required: ['appName'],
+          },
+        },
+        {
+          name: 'get_monitors',
+          description: 'Get monitor configuration data for layout adaptation',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'set_window_position',
+          description: 'Move a window to a specific position for precise control',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              appName: {
+                type: 'string',
+                description: 'Name of the application',
+              },
+              x: {
+                type: 'number',
+                description: 'X coordinate',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate',
+              },
+            },
+            required: ['appName', 'x', 'y'],
+          },
+        },
+        {
+          name: 'set_window_size',
+          description: 'Resize a window to specific dimensions',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              appName: {
+                type: 'string',
+                description: 'Name of the application',
+              },
+              width: {
+                type: 'number',
+                description: 'Window width',
+              },
+              height: {
+                type: 'number',
+                description: 'Window height',
+              },
+            },
+            required: ['appName', 'width', 'height'],
+          },
+        },
       ],
     }));
 
@@ -146,6 +220,16 @@ class MoomMCPServer {
           return await this.createQuadLayout(args.layoutName, args.display, args.apps);
         case 'create_custom_grid_layout':
           return await this.createCustomGridLayout(args.layoutName, args.columns, args.rows);
+        case 'list_layouts':
+          return await this.listLayouts();
+        case 'launch_application':
+          return await this.launchApplication(args.appName);
+        case 'get_monitors':
+          return await this.getMonitors();
+        case 'set_window_position':
+          return await this.setWindowPosition(args.appName, args.x, args.y);
+        case 'set_window_size':
+          return await this.setWindowSize(args.appName, args.width, args.height);
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -452,6 +536,176 @@ class MoomMCPServer {
         }]
       };
     }
+  }
+
+  /**
+   * Launch a specified application
+   */
+  async launchApplication(appName) {
+    const script = `tell application "${appName}" to activate`;
+    
+    try {
+      await this.runAppleScript(script);
+      return {
+        content: [{
+          type: 'text',
+          text: `Successfully launched ${appName}`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error launching ${appName}: ${error.message}`
+        }]
+      };
+    }
+  }
+
+  /**
+   * Get monitor configuration using displayplacer
+   */
+  async getMonitors() {
+    try {
+      const output = execSync('displayplacer list', { encoding: 'utf8' });
+      const displays = this.parseDisplayInfo(output);
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `Monitor Configuration:\n${displays.map((d, i) => 
+            `Display ${i + 1}: ${d.width}x${d.height} at (${d.x}, ${d.y})${d.isMain ? ' [Main]' : ''}`
+          ).join('\n')}`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error getting monitor info: ${error.message}`
+        }]
+      };
+    }
+  }
+
+  /**
+   * Parse display information from displayplacer output
+   */
+  parseDisplayInfo(output) {
+    const displays = [];
+    const lines = output.split('\n');
+    let currentDisplay = {};
+
+    for (const line of lines) {
+      if (line.includes('Persistent screen id:')) {
+        if (currentDisplay.id) displays.push(currentDisplay);
+        currentDisplay = { id: line.split(': ')[1] };
+      } else if (line.includes('Type:')) {
+        currentDisplay.type = line.split(': ')[1];
+      } else if (line.includes('Resolution:')) {
+        const res = line.match(/(\d+)x(\d+)/);
+        if (res) {
+          currentDisplay.width = parseInt(res[1]);
+          currentDisplay.height = parseInt(res[2]);
+        }
+      } else if (line.includes('Origin:')) {
+        const origin = line.match(/\((-?\d+),(-?\d+)\)/);
+        if (origin) {
+          currentDisplay.x = parseInt(origin[1]);
+          currentDisplay.y = parseInt(origin[2]);
+        }
+      } else if (line.includes('Main Display: Yes')) {
+        currentDisplay.isMain = true;
+      }
+    }
+    
+    if (currentDisplay.id) displays.push(currentDisplay);
+    return displays;
+  }
+
+  /**
+   * Set window position for precise control
+   */
+  async setWindowPosition(appName, x, y) {
+    const processName = this.getProcessName(appName);
+    const script = `
+      tell application "${appName}" to activate
+      delay 0.5
+      tell application "System Events"
+        tell process "${processName}"
+          set frontmost to true
+          set position of front window to {${x}, ${y}}
+        end tell
+      end tell
+    `;
+
+    try {
+      await this.runAppleScript(script);
+      return {
+        content: [{
+          type: 'text',
+          text: `Successfully positioned ${appName} window at (${x}, ${y})`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error positioning ${appName}: ${error.message}`
+        }]
+      };
+    }
+  }
+
+  /**
+   * Set window size for precise control
+   */
+  async setWindowSize(appName, width, height) {
+    const processName = this.getProcessName(appName);
+    const script = `
+      tell application "${appName}" to activate
+      delay 0.5
+      tell application "System Events"
+        tell process "${processName}"
+          set frontmost to true
+          set size of front window to {${width}, ${height}}
+        end tell
+      end tell
+    `;
+
+    try {
+      await this.runAppleScript(script);
+      return {
+        content: [{
+          type: 'text',
+          text: `Successfully resized ${appName} window to ${width}x${height}`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error resizing ${appName}: ${error.message}`
+        }]
+      };
+    }
+  }
+
+  /**
+   * Get process name for different applications
+   */
+  getProcessName(appName) {
+    const processMap = {
+      "Visual Studio Code": "Code",
+      "iTerm": "iTerm2",
+      "Safari": "Safari",
+      "Claude": "Claude",
+      "Terminal": "Terminal",
+      "Finder": "Finder",
+      "Chrome": "Google Chrome",
+      "Firefox": "Firefox"
+    };
+    return processMap[appName] || appName;
   }
 
   async start() {
