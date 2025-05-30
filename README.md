@@ -6,9 +6,10 @@ A Model Context Protocol (MCP) server that enables programmatic control of [Moom
 
 This MCP server allows Claude to interact with Moom, a powerful macOS window management tool, enabling you to:
 - Switch between saved window layouts
-- Create new window arrangements
-- Control window positioning and sizing
+- Create new window arrangements with pixel-perfect precision
+- Control window positioning and sizing across multiple monitors
 - Manage your workspace layouts through conversational commands
+- **NEW**: DisplayPlacer integration for exact multi-monitor positioning
 
 ## Features
 
@@ -16,6 +17,8 @@ This MCP server allows Claude to interact with Moom, a powerful macOS window man
 - 💾 **save_current_layout** - Save your current window arrangement as a reusable layout
 - 🎯 **trigger_moom_action** - Execute Moom window actions (resize, move, center, etc.)
 - 📋 **show_moom_menu** - Display the Moom popup menu
+- 🖥️ **DisplayPlacer Integration** - Pixel-perfect multi-monitor window positioning
+- 📐 **Precision Layouts** - Exact coordinate-based window management
 
 ## Prerequisites
 
@@ -24,6 +27,7 @@ This MCP server allows Claude to interact with Moom, a powerful macOS window man
 - Node.js 14 or higher
 - [Claude Desktop](https://claude.ai/download) app
 - Terminal app with accessibility permissions
+- **Optional**: [DisplayPlacer](https://github.com/jakehilborn/displayplacer) for enhanced multi-monitor support
 
 ## Installation
 
@@ -68,6 +72,7 @@ Once installed, you can use natural language commands in Claude Desktop:
 - "Switch to my Teaching (Mac Mini) layout"
 - "Activate the AI Research Mode workspace"
 - "Use my coding layout"
+- **NEW**: "Switch to DisplayPlacer Coding Pro" (pixel-perfect positioning)
 
 ### Saving Layouts
 - "Save the current window arrangement as 'Focus Mode'"
@@ -82,6 +87,11 @@ Once installed, you can use natural language commands in Claude Desktop:
 ### Menu Access
 - "Show the Moom menu"
 - "Open Moom's layout picker"
+
+### Multi-Monitor Precision (NEW)
+- "Create a DisplayPlacer coding layout" (uses exact coordinates)
+- "Position windows with pixel precision"
+- "Optimize for my 4K display setup"
 
 ## Available Commands
 
@@ -103,12 +113,33 @@ Once installed, you can use natural language commands in Claude Desktop:
 - `center` - Center window on screen
 - `fill-screen` - Maximize window
 
+## DisplayPlacer Integration
+
+The server now includes advanced multi-monitor support using [DisplayPlacer](https://github.com/jakehilborn/displayplacer):
+
+### Benefits
+- **Pixel-perfect positioning** using exact display coordinates
+- **Multi-monitor awareness** with proper origin calculation
+- **4K display optimization** with scaling consideration
+- **High refresh rate support** (120Hz+)
+- **Negative coordinate handling** for left-positioned displays
+
+### Enhanced Layouts
+- **DisplayPlacer Coding Pro**: Precision layout for development
+- **Ultimate Multi-Monitor Pro**: Full display utilization across all monitors
+
+### Installation (Optional)
+```bash
+brew install jakehilborn/jakehilborn/displayplacer
+```
+
 ## Project Structure
 
 ```
 moom-mcp/
 ├── src/
-│   └── index.js        # Main MCP server implementation
+│   ├── index.js                    # Main MCP server implementation
+│   └── displayplacer-layouts.js    # DisplayPlacer integration module
 ├── examples.md         # Usage examples and workflows
 ├── test.js            # Basic functionality tests
 ├── test-ui.js         # UI automation tests
