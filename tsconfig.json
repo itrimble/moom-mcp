@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist", // Optional: specify an output directory for compiled JS
+    "rootDir": "./",    // Optional: specify the root directory of input files
+    "resolveJsonModule": true // Allow importing JSON modules
+  },
+  "include": [
+    "service/src/**/*.ts" // Include all .ts files in service/src
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts" // Exclude test files from direct compilation if Jest handles them
+  ]
+}

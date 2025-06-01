@@ -2,10 +2,10 @@
   "name": "moom-mcp",
   "version": "2.0.0",
   "description": "MCP server for controlling Moom window layouts on macOS",
-  "main": "src/index.js",
+  "main": "service/src/index.ts",
   "scripts": {
-    "start": "node src/index.js",
-    "test": "node test.js",
+    "start": "node service/src/index.ts",
+    "test": "jest",
     "test-ui": "node test-ui.js",
     "validate": "node validate.js",
     "demo": "node demo.js"
@@ -29,7 +29,17 @@
   "homepage": "https://github.com/itrimble/moom-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "applescript": "^1.0.0"
+    "applescript": "^1.0.0",
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/jest": "^27.0.3",
+    "@types/supertest": "^2.0.11",
+    "jest": "^27.4.7",
+    "supertest": "^6.1.6",
+    "ts-jest": "^27.1.2",
+    "typescript": "^4.5.4"
   },
   "type": "commonjs",
   "engines": {
