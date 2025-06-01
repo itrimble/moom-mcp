@@ -192,30 +192,48 @@ class DisplayPlacerIntegration {
    */
   generateAppleScript(layout) {
     let script = `-- ${layout.name} - Generated with DisplayPlacer Integration\n\n`;
+    script += `set errorList to {}\n\n`;
 
     for (const window of layout.windows) {
       script += `-- Position ${window.app}\n`;
-      script += `tell application "${window.app}"\n`;
-      script += `    activate\n`;
-      script += `    delay 0.5\n`;
-      script += `end tell\n\n`;
+      script += `if application "${window.app}" is running then\n`;
+      script += `    tell application "${window.app}"\n`;
+      script += `        activate\n`;
+      script += `        delay 0.2 -- Shorter delay, activate should be quick\n`;
+      script += `    end tell\n\n`;
       
-      script += `tell application "System Events"\n`;
-      script += `    tell process "${this.getProcessName(window.app)}"\n`;
-      script += `        set frontmost to true\n`;
-      script += `        try\n`;
-      script += `            set position of front window to {${window.x}, ${window.y}}\n`;
-      script += `            set size of front window to {${window.width}, ${window.height}}\n`;
-      script += `        on error\n`;
-      script += `            -- Fallback to Moom shortcuts if positioning fails\n`;
-      script += `        end try\n`;
+      script += `    tell application "System Events"\n`;
+      script += `        tell process "${this.getProcessName(window.app)}"\n`;
+      script += `            set frontmost to true\n`;
+      script += `            try\n`;
+      script += `                set position of front window to {${window.x}, ${window.y}}\n`;
+      script += `                set size of front window to {${window.width}, ${window.height}}\n`;
+      script += `            on error errMsg number errNum\n`;
+      script += `                set end of errorList to "Error positioning/sizing ${window.app}: " & errMsg & " (Number: " & errNum & ")"\n`;
+      script += `            end try\n`;
+      script += `        end tell\n`;
       script += `    end tell\n`;
-      script += `end tell\n\n`;
-      script += `delay 0.5\n\n`;
+      script += `else\n`;
+      script += `    set end of errorList to "Error: Application ${window.app} is not running. Cannot position."\n`;
+      script += `end if\n\n`;
+      script += `delay 0.2\n\n`; // Shorter delay after each app block
     }
 
-    script += `-- Return focus to VSCode\n`;
-    script += `tell application "Visual Studio Code" to activate\n`;
+    script += `-- Finalizing script\n`;
+    // Attempt to return focus to a common app like VSCode if it was part of the layout
+    // This helps ensure a predictable active application after script execution.
+    const vsCodeInLayout = layout.windows.some(w => w.app === "Visual Studio Code");
+    if (vsCodeInLayout) {
+        script += `if application "Visual Studio Code" is running then\n`;
+        script += `    tell application "Visual Studio Code" to activate\n`;
+        script += `end if\n`;
+    }
+
+    script += `if errorList is {} then\n`;
+    script += `    return "Layout '${layout.name}' applied successfully."\n`;
+    script += `else\n`;
+    script += `    return "Layout '${layout.name}' applied with errors: " & (errorList as text)\n`;
+    script += `end if\n`;
 
     return script;
   }
